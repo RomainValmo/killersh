@@ -1,0 +1,1 @@
+create a file at path `/opt/secret/value.txt` with the value of `secret` key as is written in kubectl etcd 
