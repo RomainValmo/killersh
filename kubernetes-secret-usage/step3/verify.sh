@@ -27,4 +27,13 @@ else
     exit 1
 fi
 
+etcdctl --cacert="/etc/kubernetes/pki/etcd/ca.crt" --key="/etc/kubernetes/pki/etcd/server.key" --cert="/etc/kubernetes/pki/etcd/server.crt" get /registry/secrets/private/myfirstsecret > resultat.txt
+if diff -q resultat.txt /opt/secret/valueetcd.txt >/dev/null; then
+    echo "Les fichiers sont identiques."
+else
+    echo "Les fichiers sont différents."
+    exit 1
+fi
+
+
 echo "🎉  Toutes les vérifications ont réussi !"
