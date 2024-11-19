@@ -34,6 +34,7 @@ We keep possibility to read secret from unencrypted secrets with identity provid
 
 <br>
 
+
 2- Apply it 
 
 We have to config api-server to use our config file. 
