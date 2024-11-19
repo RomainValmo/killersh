@@ -17,3 +17,4 @@ And you can find any info to use etcdctl in manifest of etc at this path:
 </details>
 
 Copy all the answer from ETCD DB to `/opt/secret/valueetcd.txt`. ( you have to user edirecting the output to file )
+
