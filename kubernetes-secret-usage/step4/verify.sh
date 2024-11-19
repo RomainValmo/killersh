@@ -16,11 +16,15 @@ function print_result() {
 else
   echo " c'est OK"
 
+fi
+
 if etcdctl --cacert="/etc/kubernetes/pki/etcd/ca.crt" --key="/etc/kubernetes/pki/etcd/server.key" --cert="/etc/kubernetes/pki/etcd/server.crt" get /registry/secrets/private/securesecret | grep "youcantread"; then 
   echo "  La clé 'secret' dans l'etcd"
   exit 1
 else
   echo " c'est OK"
+
+fi
 
 
 EXPECTED_NAMESPACE="private" 
@@ -32,6 +36,7 @@ print_result $? "Le secret '$EXPECTED_SECRET' existe dans le namespace '$EXPECTE
 
 EXPECTED_SECRET2="securesecret"
 
-kubectl -n "$EXPECTED_NAMESPACE" get secret "$EXPECTED_SECRET" > /dev/null 2>&1
-print_result $? "Le secret '$EXPECTED_SECRET' existe dans le namespace '$EXPECTED_NAMESPACE'."
+kubectl -n "$EXPECTED_NAMESPACE" get secret "$EXPECTED_SECRET2" > /dev/null 2>&1
+print_result $? "Le secret '$EXPECTED_SECRET2' existe dans le namespace '$EXPECTED_NAMESPACE'."
 
+echo "🎉  Toutes les vérifications ont réussi !"
