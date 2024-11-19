@@ -4,7 +4,17 @@ Try to get this secret directly from ETCD.
 
 You have to use etcdctl. 
 
-Tips. secrets are stored by default in ETCD DB in this path `regitry/secrets/namespace/nameofsecret`
+<details>
+<summary>Tips</summary>
 
-Copy all the answer from ETCD DB to `/opt/secret/valueetcd.txt`
+Secrets are stored by default in the ETCD database under the following path:  
+`registry/secrets/namespace/nameofsecret`
+
+And you can find any info to use etcdctl in manifest of etc at this path:
+`/etc/kubernetes/manifest/etcd.yaml` 
+
+
+</details>
+
+Copy all the answer from ETCD DB to `/opt/secret/valueetcd.txt`. ( you have to user edirecting the output to file )
 

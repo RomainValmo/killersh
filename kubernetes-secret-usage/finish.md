@@ -3,4 +3,9 @@
 
 ### WELL DONE !
 
-You solved this challenge!
+
+
+you solved this challenge! 
+
+
+ANd you know the basics of kube secret
