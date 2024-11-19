@@ -11,7 +11,9 @@ Secrets are stored by default in the ETCD database under the following path:
 `registry/secrets/namespace/nameofsecret`
 
 And you can find any info to use etcdctl in manifest of etc at this path:
-`/etc/kubernetes/manifests/etcd.yaml` 
+
+`/etc/kubernetes/manifest/etcd.yaml` 
+
 
 
 </details>
