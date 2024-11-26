@@ -1,9 +1,11 @@
 
-As you can see by default yours secrets are stored in plain text or just base64 encoded into ETCD.
+As you can see by default, yours secrets are stored in plain text or just base64 encoded into ETCD.
 
-Let's show, how to increase sécurity. 
+Let's show, how to increase security. 
 
 1- Write an encryption configuration file. Use the following code. and save it as encrypt.yaml
+
+Use path `\root\encrypt.yaml`
 
 ```
 apiVersion: apiserver.config.k8s.io/v1
@@ -85,13 +87,19 @@ and
 
 Save and ensure that your api-server up back 
 
-
+&nbsp;
 
 3- Create a new secret named `securesecret` into namespace `private` with this value `secret:youcantread` 
 
-4- Show your registration into etcd call and ensure you new secret are encryted 
+&nbsp;
 
-5- Show your previous secret myfirstsecret. Surprise !!!!!!
+4- Show your nexsecret into etcd call and ensure you new secret are encryted 
+
+&nbsp;
+
+5- Show your previous secret myfirstsecret.
+
+Surprise !!!!!! your old secret is still readable in plain text
 
 <details>
 <summary>Explanations</summary>
@@ -101,9 +109,12 @@ Your encryption setup is only apply for new secrets. This is the reason why in i
 
 <br>
 
+&nbsp;
+
 6- Regenerate all secrets 
 
 `kubectl get secrets --all-namespaces -o json | kubectl replace -f - `
 
+&nbsp;
 
 7- Ensure your previous secret are more secure now ! 

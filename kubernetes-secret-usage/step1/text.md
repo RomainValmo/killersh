@@ -1,2 +1,2 @@
 
-Create a namespace `private`
+1 - Create a namespace `private`
