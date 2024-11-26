@@ -5,7 +5,7 @@ Let's show, how to increase security.
 
 1- Write an encryption configuration file. Use the following code. and save it as encrypt.yaml
 
-Use path `\root\encrypt.yaml`
+Use path `/root/encrypt.yaml`
 
 ```
 apiVersion: apiserver.config.k8s.io/v1
