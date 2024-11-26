@@ -1,4 +1,14 @@
 
-in namespace `private` you have to create a secret named `myfirstsecret`
+1 -in namespace `private`, you have to create a secret named `myfirstsecret`
 
-You must manually this value  `secret:123456`
+You must set manually this value  `secret:123456`
+
+
+<details>
+<summary>Tips</summary>
+
+To create secret manually and fix key:secret ,
+you have tu use
+`kubectl -n namespace create secret name --from-literal key=value `
+
+</details>
