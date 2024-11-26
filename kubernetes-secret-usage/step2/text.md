@@ -9,6 +9,6 @@ You must set manually this value  `secret:123456`
 
 To create secret manually and fix key:secret ,
 you have tu use
-`kubectl -n namespace create secret name --from-literal key=value `
+`kubectl -n namespace create secret generic name --from-literal key=value `
 
 </details>
