@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # verify error understanding
-errorexpected="ErrImagePull"
-errordeclared=$(cat /opt/exercise1/podstatus.txt)
+errorexpected="Error"
+errordeclared=$(cat /opt/exercise2/podstatus.txt)
 
 if [ "$errorexpected" == "$errordeclared" ]; then
     echo "✅  Error found."
@@ -12,8 +12,8 @@ else
 fi
 
 # Verify that the pod is in the running state
-expected="nginx   Running"
-actual=$(kubectl get pod -n exercice1 -o custom-columns="NAME:.metadata.name,STATUS:.status.phase" --no-headers)
+expected="apache   Running"
+actual=$(kubectl get pod -n exercise2 -o custom-columns="NAME:.metadata.name,STATUS:.status.phase" --no-headers)
 
 
 if [ "$expected" == "$actual" ]; then

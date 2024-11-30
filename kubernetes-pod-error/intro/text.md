@@ -1,7 +1,7 @@
 
 ### Hello all ,
 
-Welcome to these exercice to analyse some pods errors
+Welcome to these exercises to analyse some pods errors
 
 Enjoy your killershell 
 
