@@ -1,7 +1,7 @@
 
-You tried to deploy pod `nginx` in namespace named `exercice1`
+You tried to deploy pod `nginx` in namespace named `exercise1`
 
-1- Copy pod status to `/opt/exercice1/podstatus.txt`
+1- Copy pod status to `/opt/exercise1/podstatus.txt`
 
 2- Identify and fix issue
 

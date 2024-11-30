@@ -3,13 +3,15 @@ kind: Pod
 metadata:
   creationTimestamp: null
   labels:
-    run: nginx
-  name: nginx
-  namespace: exercise1
+    run: apache
+  name: apache
+  namespace: exercise2
 spec:
   containers:
-  - image: ng
-    name: nginx
+  - image: httpd
+    name: apache
+    securityContext:
+      readOnlyRootFilesystem: true
     resources: {}
   dnsPolicy: ClusterFirst
   restartPolicy: Always

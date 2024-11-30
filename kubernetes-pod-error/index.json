@@ -1,6 +1,6 @@
 {
-  "title": "Kubernetes secret usages",
-  "description": "learn about k8s secret",
+  "title": "Kubernetes fix pod error",
+  "description": "training to use debug commands to fix pod error",
   "details": {
     "intro": {
       "title": "Intro",
@@ -12,6 +12,11 @@
         "title": "Exercise 1",
         "text": "step1/text.md",
         "verify": "step1/verify.sh"
+      },
+      {
+        "title": "Exercise 2",
+        "text": "step2/text.md",
+        "verify": "step2/verify.sh"
       }
     ],
     "finish": {
