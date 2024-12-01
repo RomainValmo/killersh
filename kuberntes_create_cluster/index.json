@@ -8,12 +8,12 @@
           },
           "steps": [
             {
-              "title": "Exercise 1",
+              "title": "Mise a jour d'ubuntu et préparation de l'environnement",
               "text": "step1/text.md",
               "verify": "step1/verify.sh"
             },
             {
-              "title": "Exercise 2",
+              "title": "Installation de kubeadm, kubectl et kubelet",
               "text": "step2/text.md",
               "verify": "step2/verify.sh"
             }
