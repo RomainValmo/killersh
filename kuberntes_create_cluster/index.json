@@ -1,0 +1,36 @@
+{
+    "title": "Création d'un cluster Kubernetes",
+    "description": "Apprendre a creer un cluster Kubernetes",
+    "details": {
+        "intro": {
+            "title": "Introduction",
+            "text": "intro/text.md"
+          },
+          "steps": [
+            {
+              "title": "Exercise 1",
+              "text": "step1/text.md",
+              "verify": "step1/verify.sh"
+            },
+            {
+              "title": "Exercise 2",
+              "text": "step2/text.md",
+              "verify": "step2/verify.sh"
+            }
+          ],
+          "finish": {
+            "text": "finish.md"
+          }
+          },
+    "backend": {
+        "imageid": "ubuntu",
+        "nodes": {
+            "node1": {
+                "hostname": "master"
+            },
+            "node2": {
+                "hostname": "worker1"
+            }
+        }
+    }
+}
