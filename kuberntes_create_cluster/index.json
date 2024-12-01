@@ -26,10 +26,12 @@
         "imageid": "ubuntu",
         "nodes": {
             "node1": {
-                "hostname": "master"
+                "hostname": "master",
+                 "script": "./intro/background.sh"
             },
             "node2": {
-                "hostname": "worker1"
+                "hostname": "worker1",
+                 "script": "./intro/background.sh"
             }
         }
     }
