@@ -28,12 +28,12 @@
             {
                 "name": "master",
                 "hostname": "master",
-                "background": "curl -O https://raw.githubusercontent.com/RomainValmo/killersh/main/kuberntes_create_cluster/background.sh && chmod +x background.sh && ./background.sh > /tmp/script_output.txt 2>&1"
+                "foreground": "foreground.sh"
             },
             {
                 "name": "worker1",
                 "hostname": "worker1",
-                "background": "curl -O https://raw.githubusercontent.com/RomainValmo/killersh/main/kuberntes_create_cluster/background.sh && chmod +x background.sh && ./background.sh > /tmp/script_output.txt 2>&1"
+                "foreground": "foreground.sh"
             }
         ]
     }
