@@ -4,8 +4,9 @@
     "details": {
         "intro": {
             "title": "Introduction",
-            "text": "intro/text.md"
-        },
+            "text": "intro/text.md",
+            "background": "background.sh"
+          },
         "steps": [
             {
                 "title": "Mise à jour d'Ubuntu et préparation de l'environnement",
