@@ -4,7 +4,7 @@
     "details": {
         "intro": {
             "title": "Introduction",
-            "text": "intro/text.md"
+            "text": "intro/text.md",
             "foreground": "background.sh"
 
           },
