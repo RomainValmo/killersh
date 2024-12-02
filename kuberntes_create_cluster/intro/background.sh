@@ -33,10 +33,10 @@ echo "Exchanging SSH keys between nodes..."
 
 # Copier la clé publique du master vers le worker1
 ssh $MASTER_IP "ssh-keyscan -H $WORKER1_HOSTNAME >> ~/.ssh/known_hosts"
-ssh $MASTER_IP "ssh-copy-id -o StrictHostKeyChecking=no ubuntu@$WORKER1_HOSTNAME"
+ssh $MASTER_IP "ssh-copy-id -o StrictHostKeyChecking=no $WORKER1_HOSTNAME"
 
 # Copier la clé publique du worker1 vers le master
 ssh $WORKER1_IP "ssh-keyscan -H $MASTER_HOSTNAME >> ~/.ssh/known_hosts"
-ssh $WORKER1_IP "ssh-copy-id -o StrictHostKeyChecking=no ubuntu@$MASTER_HOSTNAME"
+ssh $WORKER1_IP "ssh-copy-id -o StrictHostKeyChecking=no $MASTER_HOSTNAME"
 
 echo "Setup completed successfully!"
