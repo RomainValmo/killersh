@@ -1,38 +1,38 @@
 {
-    "title": "Création d'un cluster Kubernetes",
-    "description": "Apprendre a creer un cluster Kubernetes",
-    "details": {
-        "intro": {
-            "title": "Introduction",
-            "text": "intro/text.md"
-          },
-          "steps": [
-            {
-              "title": "Mise a jour d'ubuntu et préparation de l'environnement",
+  "title": "Création d'un cluster Kubernetes",
+  "description": "Apprendre à créer un cluster Kubernetes",
+  "details": {
+      "intro": {
+          "title": "Introduction",
+          "text": "intro/text.md"
+      },
+      "steps": [
+          {
+              "title": "Mise à jour d'Ubuntu et préparation de l'environnement",
               "text": "step1/text.md",
               "verify": "step1/verify.sh"
-            },
-            {
+          },
+          {
               "title": "Installation de kubeadm, kubectl et kubelet",
               "text": "step2/text.md",
               "verify": "step2/verify.sh"
-            }
-          ],
-          "finish": {
-            "text": "finish.md"
           }
+      ],
+      "finish": {
+          "text": "finish.md"
+      }
+  },
+  "backend": {
+      "imageid": "ubuntu",
+      "nodes": {
+          "node1": {
+              "hostname": "master",
+              "script": "curl -O https://raw.githubusercontent.com/RomainValmo/killersh/main/kuberntes_create_cluster/background.sh && chmod +x background.sh && ./background.sh"
           },
-    "backend": {
-        "imageid": "ubuntu",
-        "nodes": {
-            "node1": {
-                "hostname": "master",
-                 "script": "background.sh"
-            },
-            "node2": {
-                "hostname": "worker1",
-                 "script": "background.sh"
-            }
-        }
-    }
+          "node2": {
+              "hostname": "worker1",
+              "script": "curl -O https://raw.githubusercontent.com/RomainValmo/killersh/main/kuberntes_create_cluster/background.sh && chmod +x background.sh && ./background.sh"
+          }
+      }
+  }
 }
