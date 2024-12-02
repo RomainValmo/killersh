@@ -27,11 +27,11 @@
         "nodes": {
             "node1": {
                 "hostname": "master",
-                 "script": "intro/background.sh"
+                 "script": "background.sh"
             },
             "node2": {
                 "hostname": "worker1",
-                 "script": "intro/background.sh"
+                 "script": "background.sh"
             }
         }
     }
