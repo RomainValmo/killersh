@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "Script exécuté sur $(hostname)" > /tmp/script_log.txt
+
 # Détecter l'adresse IP du serveur actuel
 CURRENT_IP=$(hostname -I | awk '{print $1}')
 
