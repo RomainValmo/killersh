@@ -1,39 +1,36 @@
 {
     "title": "Création d'un cluster Kubernetes",
-    "description": "Apprendre a creer un cluster Kubernetes",
+    "description": "Apprendre à créer un cluster Kubernetes",
     "details": {
         "intro": {
             "title": "Introduction",
-            "text": "intro/text.md",
-            "foreground": "intro/background.sh"
-
-          },
-          "steps": [
+            "text": "intro/text.md"
+        },
+        "steps": [
             {
-              "title": "Mise a jour d'ubuntu et préparation de l'environnement",
-              "text": "step1/text.md",
-              "verify": "step1/verify.sh"
+                "title": "Mise à jour d'Ubuntu et préparation de l'environnement",
+                "text": "step1/text.md",
+                "verify": "step1/verify.sh"
             },
             {
-              "title": "Installation de kubeadm, kubectl et kubelet",
-              "text": "step2/text.md",
-              "verify": "step2/verify.sh"
+                "title": "Installation de kubeadm, kubectl et kubelet",
+                "text": "step2/text.md",
+                "verify": "step2/verify.sh"
             }
-          ],
-          "finish": {
+        ],
+        "finish": {
             "text": "finish.md"
-          }
-          },
+        }
+    },
     "backend": {
-        "imageid": "ubuntu",
         "nodes": {
             "node1": {
-                "hostname": "master"
-                 
+                "hostname": "master",
+                "imageid": "ubuntu"
             },
             "node2": {
-                "hostname": "worker1"
-                
+                "hostname": "worker1",
+                "imageid": "ubuntu"
             }
         }
     }
