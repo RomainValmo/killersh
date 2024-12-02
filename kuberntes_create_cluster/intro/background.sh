@@ -17,8 +17,8 @@ configure_node() {
   ssh -o StrictHostKeyChecking=no ubuntu@${NODE_IP} "sudo hostnamectl set-hostname ${NODE_HOSTNAME}"
 
   # 2. Mettre à jour /etc/hosts
-  ssh ubuntu@${NODE_IP} "echo '${MASTER_IP} ${MASTER_HOSTNAME}' | sudo tee -a /etc/hosts"
-  ssh ubuntu@${NODE_IP} "echo '${WORKER1_IP} ${WORKER1_HOSTNAME}' | sudo tee -a /etc/hosts"
+  ssh ${NODE_IP} "echo '${MASTER_IP} ${MASTER_HOSTNAME}' | sudo tee -a /etc/hosts"
+  ssh ${NODE_IP} "echo '${WORKER1_IP} ${WORKER1_HOSTNAME}' | sudo tee -a /etc/hosts"
 
   # 3. Générer une clé SSH si elle n'existe pas déjà
   ssh ubuntu@${NODE_IP} "if [ ! -f ~/.ssh/id_rsa ]; then ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -q -N ''; fi"
