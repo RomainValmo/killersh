@@ -23,14 +23,15 @@
         }
     },
     "backend": {
+        "imageid": "ubuntu",
         "nodes": {
             "node1": {
                 "hostname": "master",
-                "imageid": "ubuntu"
+                 "script": "background.sh"
             },
             "node2": {
                 "hostname": "worker1",
-                "imageid": "ubuntu"
+                 "script": "background.sh"
             }
         }
     }
