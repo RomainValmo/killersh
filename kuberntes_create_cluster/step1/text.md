@@ -62,9 +62,13 @@ Interagir avec les images de conteneur : Une image est une "recette" pour créer
 *** On arrete le service, on copie le binaire puis on supprime l'archive avant de redemarer le service.
 
 `systemctl stop containerd`
+
 `mv bin/* /usr/bin`
+
 `rm -rf bin containerd-1.6.12-linux-amd64.tar.gz`
+
 `systemctl unmask containerd`
+
 `systemctl start containerd`
 
 ### 4- Configuration Containerd
@@ -81,6 +85,7 @@ EOF
 On set ces paramètres 
 
 `sudo modprobe overlay`
+
 `sudo modprobe br_netfilter`
 
 Puis on excute ce nouveau script :
