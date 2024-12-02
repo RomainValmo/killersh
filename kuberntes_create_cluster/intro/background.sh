@@ -21,7 +21,7 @@ configure_node() {
   ssh ${NODE_IP} "echo '${WORKER1_IP} ${WORKER1_HOSTNAME}' | sudo tee -a /etc/hosts"
 
   # 3. Générer une clé SSH si elle n'existe pas déjà
-  ssh ubuntu@${NODE_IP} "if [ ! -f ~/.ssh/id_rsa ]; then ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -q -N ''; fi"
+  ssh ${NODE_IP} "if [ ! -f ~/.ssh/id_rsa ]; then ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -q -N ''; fi"
 }
 
 # Configurer les deux nœuds
@@ -32,11 +32,11 @@ configure_node $WORKER1_IP $WORKER1_HOSTNAME
 echo "Exchanging SSH keys between nodes..."
 
 # Copier la clé publique du master vers le worker1
-ssh ubuntu@$MASTER_IP "ssh-keyscan -H $WORKER1_HOSTNAME >> ~/.ssh/known_hosts"
-ssh ubuntu@$MASTER_IP "ssh-copy-id -o StrictHostKeyChecking=no ubuntu@$WORKER1_HOSTNAME"
+ssh $MASTER_IP "ssh-keyscan -H $WORKER1_HOSTNAME >> ~/.ssh/known_hosts"
+ssh $MASTER_IP "ssh-copy-id -o StrictHostKeyChecking=no ubuntu@$WORKER1_HOSTNAME"
 
 # Copier la clé publique du worker1 vers le master
-ssh ubuntu@$WORKER1_IP "ssh-keyscan -H $MASTER_HOSTNAME >> ~/.ssh/known_hosts"
-ssh ubuntu@$WORKER1_IP "ssh-copy-id -o StrictHostKeyChecking=no ubuntu@$MASTER_HOSTNAME"
+ssh $WORKER1_IP "ssh-keyscan -H $MASTER_HOSTNAME >> ~/.ssh/known_hosts"
+ssh $WORKER1_IP "ssh-copy-id -o StrictHostKeyChecking=no ubuntu@$MASTER_HOSTNAME"
 
 echo "Setup completed successfully!"
