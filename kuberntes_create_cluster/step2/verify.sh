@@ -11,12 +11,13 @@ fi
 
 # Verify that the pod is in the running state
 expected="Running"
-actual=$(kubectl get pod test -o jsonpath="{.status.phase}"")
+actual=$(kubectl get pod test -o jsonpath="{.status.phase}")
 
 
 if [ "$expected" == "$actual" ]; then
-    echo "✅  Pod test is running"
+    echo "✅  Pod test is running "
 else
-    echo "❌  Pod test is not running"
+    echo "❌  Pod test is not running "
+
     exit 1
 fi

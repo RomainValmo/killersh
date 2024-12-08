@@ -2,6 +2,7 @@
 
 ## Installation de HELM 
 
+
 [Helm c'est quoi](https://github.com/RomainValmo/killersh/tree/main/About_Kubernetes/Helm.md)
 
 **HELM**
@@ -60,7 +61,7 @@ On va allez vérifier cà tout de suite avec la commande
 
 `kubectl -n kube-system get pod`
 
-Vous devriez avoir un retour semblable à celà 
+Vous devriez avoir un retour semblable à celà ( Ca peut prendre quelques secondes/minues)
 
 ```
 ubuntu $ kubectl -n kube-system get pod
@@ -122,6 +123,7 @@ NAME   READY   STATUS    RESTARTS   AGE
 test   1/1     Running   0          4m25s
 
 ```
+
 
 
 Si tout est ok vous pouvez cliquer sur check. 

@@ -1,8 +1,10 @@
 #!/bin/bash
-
+  
 # verify error understanding
 expected="node/ubuntu"
-real=$(cat kubectl get node -o name)
+
+real=$(kubectl get node -o name)
+
 
 if [ "$expected" == "$real" ]; then
     echo "✅  Node running."
@@ -12,7 +14,9 @@ else
 fi
 
 # Verify that the pod is in the running state
-expected="key: node-role.kubernetes.io/control-plane"
+
+expected="      key: node-role.kubernetes.io/control-plane"
+
 actual=$(kubectl get node -oyaml | grep "key: node-role.kubernetes.io")
 
 
@@ -22,3 +26,4 @@ else
     echo "❌  No Control-plan"
     exit 1
 fi
+
