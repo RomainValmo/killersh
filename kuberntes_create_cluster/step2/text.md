@@ -1,9 +1,8 @@
+# Installation du CNI
 
-1 -in namespace `private`, you have to create a secret named `myfirstsecret`
+## Installation de HELM 
 
-<<<<<<< Updated upstream
-You must set manually this value  `secret:123456`
-=======
+
 [Helm c'est quoi](https://github.com/RomainValmo/killersh/tree/main/About_Kubernetes/Helm.md)
 
 **HELM**
@@ -124,14 +123,8 @@ NAME   READY   STATUS    RESTARTS   AGE
 test   1/1     Running   0          4m25s
 
 ```
->>>>>>> Stashed changes
 
 
-<details>
-<summary>Tips</summary>
 
-To create secret manually and fix key:secret ,
-you have tu use
-`kubectl -n namespace create secret generic name --from-literal key=value `
+Si tout est ok vous pouvez cliquer sur check. 
 
-</details>

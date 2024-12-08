@@ -18,5 +18,6 @@ if [ "$expected" == "$actual" ]; then
     echo "✅  Pod test is running "
 else
     echo "❌  Pod test is not running "
+
     exit 1
 fi
