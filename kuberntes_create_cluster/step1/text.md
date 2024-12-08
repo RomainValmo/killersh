@@ -216,8 +216,9 @@ Le CNI est un plugin Network qui permet aux différents éléments du cluster de
 
 J'ai un faible pour [Cilium](https://cilium.io/), que nous allons installer à l'etape suivante. 
 
-Maintenant si tout est fait correctement , tu peux cliquer sur check pour passer à l'étape suivante. 
 
+Maintenant si tout est fait correctement , tu peux cliquer sur check pour passer à l'étape suivante. 
+ 
 
 
 
