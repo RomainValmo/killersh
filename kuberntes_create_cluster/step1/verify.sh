@@ -1,24 +1,25 @@
 #!/bin/bash
-
+  
 # verify error understanding
-errorexpected="ErrImagePull"
-errordeclared=$(cat /opt/exercise1/podstatus.txt)
+expected="node/ubuntu"
+real=$(kubectl get node -o name)
 
-if [ "$errorexpected" == "$errordeclared" ]; then
-    echo "✅  Error found."
+if [ "$expected" == "$real" ]; then
+    echo "✅  Node running."
 else
-    echo "❌  Error not found"
+    echo "❌  Node not found"
     exit 1
 fi
 
 # Verify that the pod is in the running state
-expected="nginx   Running"
-actual=$(kubectl get pod -n exercise1 -o custom-columns="NAME:.metadata.name,STATUS:.status.phase" --no-headers)
+expected="      key: node-role.kubernetes.io/control-plane"
+actual=$(kubectl get node -oyaml | grep "key: node-role.kubernetes.io")
 
 
 if [ "$expected" == "$actual" ]; then
-    echo "✅  Issue fixed."
+    echo "✅  Control-plan created"
 else
-    echo "❌  No fixed"
+    echo "❌  No Control-plan"
     exit 1
 fi
+

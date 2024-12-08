@@ -1,10 +1,13 @@
 ### Vous voilà dans l'univer Kubernetes
 
-Vous disposez dans cette environement d'un serveurs `Ubuntu 20.04` appelé Node ( Noeuds ) dans K8s
+Vous disposez dans cette environement d'un serveur `Ubuntu 20.04` appelé Node ( Noeuds ) dans K8s
 
 Vous êtes directement connecté à l'environement.
 
 Ici pour des raison de simplicité, nous allons travailler avec un seul serveur qui fera office de Control-plan et de worker 
+
+Ici vous allez apprendre à installer un cluster Kubernetes sur une machine ubuntu 20.04. 
+Vous pourrez reprendre ces éléments, si vous souhaitez creer votre prope cluster sur GCP, AWS ou autre. 
 
 ### 1- On desactive le swap 
 
@@ -12,11 +15,13 @@ Ici pour des raison de simplicité, nous allons travailler avec un seul serveur 
 
 `sed -i '/\sswap\s/ s/^\(.*\)$/#\1/g' /etc/fstab`
 
+[Le swap c'est quoi?](https://fr.wikipedia.org/wiki/Espace_d%27%C3%A9change#:~:text=L'espace%20d'%C3%A9change%2C,se%20trouvent%20en%20m%C3%A9moire%20vive.)
+
 ### 2- Mise à jour des paquets UBUNTU du control-plan 
 
 ***  Pour être tranquille passons en sudo `sudo -i `
 
-***  Mettons à jours les paquets APT avce la commande `apt update && apt upgrade -y`
+***  Mettons à jours les paquets APT avec la commande `apt update && apt upgrade -y`
 
 ***  Procédons à l'instalation des paquets nécessaires `apt-get install -y apt-transport-https ca-certificates curl gpg`
 
@@ -183,8 +188,35 @@ systemctl enable kubelet && systemctl start kubelet
 On utilise pour çà 
 la commande kubeadm 
 
-`kubeadm init --kubernetes-version=${KUBE_VERSION} --ignore-preflight-errors=NumCPU --skip-token-print --pod-network-cidr 192.168.0.0/16`
+`kubeadm init --kubernetes-version=1.31.1 --ignore-preflight-errors=NumCPU --skip-token-print --pod-network-cidr 192.168.0.0/16`
 
+Ici on définit que nos pods se trouveront dans le réseau 192.168.0.0/16. 
+
+Attention vous devez utiliser une plage libre. 
+
+Si vous lisez bien le prompt à l'ecran. on vous demande de charger les fichier de configuration Kube pour l'user courant
+
+```
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+  ```
+
+### 7- Vous venez de creer votre cluster. Mais c'est pas fini...
+
+Effectivement, 
+vous pouvez voir grace à la commande 
+`kubectl get node`
+( commande qui permet de lister les noeuds du cluster) que votre control-plan n'est pas ready. 
+
+La raison se situe dans le fait , que nous n'avons pas encore défini de **CNI** 
+
+Le CNI est un plugin Network qui permet aux différents éléments du cluster de communiquer entre eux. 
+
+J'ai un faible pour [Cilium](https://cilium.io/), que nous allons installer à l'etape suivante. 
+
+Maintenant si tout est fait correctement , tu peux cliquer sur check pour passer à l'étape suivante. 
 
 
 

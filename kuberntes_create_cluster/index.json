@@ -11,6 +11,11 @@
               "title": "Mise a jour d'ubuntu , préparation de l'environnement, et instalation avec Kubeadm",
               "text": "step1/text.md",
               "verify": "step1/verify.sh"
+            },
+            {
+              "title": "Installation de HELM et de CILIUM",
+              "text": "step2/text.md",
+              "verify": "step2/verify.sh"
             }
           ],
           "finish": {
