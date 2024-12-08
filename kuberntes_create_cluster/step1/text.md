@@ -16,7 +16,7 @@ Ici pour des raison de simplicité, nous allons travailler avec un seul serveur 
 
 ***  Pour être tranquille passons en sudo `sudo -i `
 
-***  Mettons à jours les paquets APT avce la commande `apt update && apt upgrade -y`
+***  Mettons à jours les paquets APT avec la commande `apt update && apt upgrade -y`
 
 ***  Procédons à l'instalation des paquets nécessaires `apt-get install -y apt-transport-https ca-certificates curl gpg`
 
