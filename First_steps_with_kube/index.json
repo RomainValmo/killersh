@@ -1,0 +1,38 @@
+{
+  "title": "Kubernetes les premiers pas",
+  "description": "Allons découvrir cet outil de gestion de conteneurs",
+  "details": {
+    "intro": {
+      "text": "intro.md"
+    },
+    "steps": [
+      {
+        "title": "Objet N°1: Les pods",
+        "text": "step1/text.md",
+        "verify": "step1/verify.sh"
+      },
+      {
+        "title": "Objet N°2: Les deployments",
+        "text": "step2/text.md",
+        "verify": "step2/verify.sh"
+      },
+      {
+        "title": "Objet N°3: Les services",
+        "text": "step3/text.md",
+        "verify": "step3/verify.sh"
+      },
+      
+      {
+        "title": "Objet N°4: Les namespaces",
+        "text": "step4/text.md",
+        "verify": "step4/verify.sh"
+      }
+    ],
+    "finish": {
+      "text": "finish.md"
+    }
+  },
+  "backend": {
+    "imageid": "kubernetes-kubeadm-2nodes"
+  }
+}
