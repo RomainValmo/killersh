@@ -169,10 +169,10 @@ kubectl rollout status deployment my-deployment
 
 1. Crée un deployment nommé `apache` , qui a les attributs suivants :
  
-    a) 3 réplicas
-    b) utilise le label app: apache
-    c) le container utilise l'image `httpd` et à pour nom `apache-pod`
-    d) upsacler le nombre de pods à 4 grace à la commande dédiée. 
+    a) 3 réplicas <br>
+    b) utilise le label app: apache <br>
+    c) le container utilise l'image `httpd` et à pour nom `apache-pod` <br>
+    d) upsacler le nombre de pods à 4 grace à la commande dédiée. <br>
 
 Tip: On peut aussi utiliser la commande 
 
