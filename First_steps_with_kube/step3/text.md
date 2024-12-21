@@ -118,11 +118,11 @@ Nous allons exposer notre pod1 créé à la premiere étape de ce Killersh
 ## Exercice 
 
 Vous devez creer un service nommé `apache-service`
-Ce dernier doit :
+Ce dernier doit : <br>
 
-    a) exposer le deployment `apache`
+a) Exposer le deployment `apache`
 
-    b) utiliser le type `ClusterIP`
+b) Utiliser le type `ClusterIP`
   
-    c) utiliser le port `80`
+c) Utiliser le port `80`
 
