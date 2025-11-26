@@ -19,7 +19,6 @@ cat <<EOF > expected.yaml
 apiVersion: v1
 kind: Pod
 metadata:
-  creationTimestamp: null
   labels:
     run: pod3
   name: pod3
