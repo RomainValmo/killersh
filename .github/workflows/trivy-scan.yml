@@ -1,0 +1,370 @@
+name: Trivy Security Scan
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  trivy-scan:
+    name: Run Trivy Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Artifactory (optional)
+        run: |
+          if [ -z "${{ secrets.DOCKER }}" ] || [ -z "${{ secrets.DOCKER_LDAP }}" ]; then
+            echo "⚠️ Docker secrets not configured, skipping registry login"
+            exit 0
+          fi
+          
+          echo "🔐 Attempting to login to Artifactory registries..."
+          
+          if echo "${{ secrets.DOCKER }}" | docker login adeo-docker.jfrog.io -u "${{ secrets.DOCKER_LDAP }}" --password-stdin 2>/dev/null; then
+            echo "  ✅ Logged in to adeo-docker.jfrog.io"
+          else
+            echo "  ⚠️ Failed to login to adeo-docker.jfrog.io (continuing anyway)"
+          fi
+          
+          if echo "${{ secrets.DOCKER }}" | docker login docker-remote-docker-hub.jfrog.adeo.cloud -u "${{ secrets.DOCKER_LDAP }}" --password-stdin 2>/dev/null; then
+            echo "  ✅ Logged in to docker-remote-docker-hub.jfrog.adeo.cloud"
+          else
+            echo "  ⚠️ Failed to login to docker-remote-docker-hub.jfrog.adeo.cloud (continuing anyway)"
+          fi
+        continue-on-error: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+      
+      - name: Install Trivy
+        run: |
+          sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
+      
+      - name: Generate SBOM and scan for vulnerabilities
+        run: |
+          # Initialiser les fichiers
+          echo '{"Results":[]}' > sbom.json
+          echo '{"Results":[]}' > trivy-results.json
+          
+          # ============================================
+          # 1. Scanner les fichiers de dépendances Python avec pip
+          # ============================================
+          echo "🐍 Scanning Python dependencies..."
+          
+          find . -maxdepth 4 -type f -name "requirements*.txt" | while read -r reqfile; do
+            echo "  Processing: $reqfile"
+            SAFE_NAME=$(echo "$reqfile" | tr '/:.' '_')
+            
+            python -m venv "/tmp/venv_${SAFE_NAME}" 2>/dev/null || true
+            "/tmp/venv_${SAFE_NAME}/bin/pip" install --quiet --no-deps -r "$reqfile" 2>/dev/null || true
+            "/tmp/venv_${SAFE_NAME}/bin/pip" install --quiet -r "$reqfile" 2>/dev/null || true
+            
+            "/tmp/venv_${SAFE_NAME}/bin/pip" list --format=json 2>/dev/null | \
+              jq '[.[] | {Name: .name, Version: .version, Identifier: {PURL: "pkg:pypi/\(.name)@\(.version)"}}]' | \
+              jq '{Results:[{Target:"'"$reqfile"'",Class:"lang-pkgs",Type:"pip",Packages:.}]}' > "python_${SAFE_NAME}.json" 2>/dev/null || true
+            
+            if [ -f "python_${SAFE_NAME}.json" ] && [ -s "python_${SAFE_NAME}.json" ]; then
+              jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' sbom.json "python_${SAFE_NAME}.json" > temp.json && mv temp.json sbom.json
+              rm -f "python_${SAFE_NAME}.json"
+            fi
+            
+            trivy fs --format json --scanners vuln "/tmp/venv_${SAFE_NAME}" > "vuln_${SAFE_NAME}.json" 2>/dev/null || true
+            
+            if [ -f "vuln_${SAFE_NAME}.json" ] && [ -s "vuln_${SAFE_NAME}.json" ]; then
+              jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' trivy-results.json "vuln_${SAFE_NAME}.json" > temp.json && mv temp.json trivy-results.json
+              rm -f "vuln_${SAFE_NAME}.json"
+            fi
+            
+            rm -rf "/tmp/venv_${SAFE_NAME}" 2>/dev/null || true
+          done
+          
+          find . -maxdepth 4 -type f \( -name "Pipfile.lock" -o -name "poetry.lock" -o -name "pyproject.toml" \) | while read -r depfile; do
+            echo "  Scanning: $depfile"
+            SAFE_NAME=$(echo "$depfile" | tr '/:.' '_')
+            
+            trivy fs --format json --list-all-pkgs "$depfile" > "dep_${SAFE_NAME}.json" 2>/dev/null || true
+            
+            if [ -f "dep_${SAFE_NAME}.json" ] && [ -s "dep_${SAFE_NAME}.json" ]; then
+              jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' sbom.json "dep_${SAFE_NAME}.json" > temp.json && mv temp.json sbom.json
+              
+              jq '{Results: [.Results[] | select(.Vulnerabilities != null and (.Vulnerabilities | length) > 0)]}' "dep_${SAFE_NAME}.json" > "vuln_${SAFE_NAME}.json" 2>/dev/null || true
+              if [ -f "vuln_${SAFE_NAME}.json" ] && [ -s "vuln_${SAFE_NAME}.json" ]; then
+                jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' trivy-results.json "vuln_${SAFE_NAME}.json" > temp.json && mv temp.json trivy-results.json
+                rm -f "vuln_${SAFE_NAME}.json"
+              fi
+              rm -f "dep_${SAFE_NAME}.json"
+            fi
+          done
+          
+          # ============================================
+          # 2. Scanner les dépendances Node.js
+          # ============================================
+          echo "📦 Scanning Node.js dependencies..."
+          
+          find . -maxdepth 4 -type f \( -name "package-lock.json" -o -name "yarn.lock" -o -name "pnpm-lock.yaml" \) | while read -r lockfile; do
+            echo "  Scanning: $lockfile"
+            SAFE_NAME=$(echo "$lockfile" | tr '/:.' '_')
+            trivy fs --format json --list-all-pkgs "$lockfile" > "node_${SAFE_NAME}.json" 2>/dev/null || true
+            if [ -f "node_${SAFE_NAME}.json" ] && [ -s "node_${SAFE_NAME}.json" ]; then
+              jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' sbom.json "node_${SAFE_NAME}.json" > temp.json && mv temp.json sbom.json
+              jq '{Results: [.Results[] | select(.Vulnerabilities != null and (.Vulnerabilities | length) > 0)]}' "node_${SAFE_NAME}.json" > "vuln_${SAFE_NAME}.json" 2>/dev/null || true
+              if [ -f "vuln_${SAFE_NAME}.json" ] && [ -s "vuln_${SAFE_NAME}.json" ]; then
+                jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' trivy-results.json "vuln_${SAFE_NAME}.json" > temp.json && mv temp.json trivy-results.json
+                rm -f "vuln_${SAFE_NAME}.json"
+              fi
+              rm -f "node_${SAFE_NAME}.json"
+            fi
+          done
+          
+          # ============================================
+          # 3. Scanner les autres fichiers
+          # ============================================
+          echo "📋 Scanning other dependency files..."
+          find . -maxdepth 4 -type f \( -name "composer.lock" -o -name "Gemfile.lock" -o -name "go.sum" -o -name "Cargo.lock" -o -name "packages.lock.json" -o -name "pom.xml" -o -name "build.gradle*" \) | while read -r depfile; do
+            echo "  Scanning: $depfile"
+            SAFE_NAME=$(echo "$depfile" | tr '/:.' '_')
+            trivy fs --format json --list-all-pkgs "$depfile" > "other_${SAFE_NAME}.json" 2>/dev/null || true
+            if [ -f "other_${SAFE_NAME}.json" ] && [ -s "other_${SAFE_NAME}.json" ]; then
+              jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' sbom.json "other_${SAFE_NAME}.json" > temp.json && mv temp.json sbom.json
+              jq '{Results: [.Results[] | select(.Vulnerabilities != null and (.Vulnerabilities | length) > 0)]}' "other_${SAFE_NAME}.json" > "vuln_${SAFE_NAME}.json" 2>/dev/null || true
+              if [ -f "vuln_${SAFE_NAME}.json" ] && [ -s "vuln_${SAFE_NAME}.json" ]; then
+                jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' trivy-results.json "vuln_${SAFE_NAME}.json" > temp.json && mv temp.json trivy-results.json
+                rm -f "vuln_${SAFE_NAME}.json"
+              fi
+              rm -f "other_${SAFE_NAME}.json"
+            fi
+          done
+          
+          # ============================================
+          # 4. Scanner les Dockerfiles et leurs images
+          # ============================================
+          echo "🐳 Scanning Docker images..."
+          find . -maxdepth 3 -type f \( -name "Dockerfile*" -o -name "*.dockerfile" \) | while read -r dockerfile; do
+            echo "  Processing: $dockerfile"
+            
+            # Récupérer TOUTES les images FROM
+            ALL_IMAGES=$(grep -i "^FROM" "$dockerfile" 2>/dev/null | awk '{print $2}' | sed 's/ [Aa][Ss].*//g')
+            STAGE_COUNT=$(echo "$ALL_IMAGES" | grep -v '^$' | wc -l)
+            
+            DOCKERFILE_DIR=$(dirname "$dockerfile")
+            DOCKERFILE_NAME=$(basename "$dockerfile")
+            BUILD_TAG="trivy-scan-temp-$(date +%s)"
+            BUILT_IMAGE_SCANNED=false
+            
+            echo "    Attempting to build image from $dockerfile..."
+            BUILD_OUTPUT=$(DOCKER_BUILDKIT=0 docker build -t "$BUILD_TAG" -f "$dockerfile" "$DOCKERFILE_DIR" 2>&1) && BUILD_SUCCESS=true || BUILD_SUCCESS=false
+            
+            if [ "$BUILD_SUCCESS" = true ]; then
+              echo "    ✅ Build successful, scanning built image..."
+              docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --list-all-pkgs --format json "$BUILD_TAG" > "built_image.json" 2>/dev/null || true
+              
+              if [ -f "built_image.json" ] && [ -s "built_image.json" ]; then
+                jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' sbom.json "built_image.json" > temp.json && mv temp.json sbom.json
+                jq '{Results: [.Results[] | select(.Vulnerabilities != null and (.Vulnerabilities | length) > 0)]}' "built_image.json" > "built_vuln.json" 2>/dev/null || true
+                if [ -f "built_vuln.json" ] && [ -s "built_vuln.json" ]; then
+                  jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' trivy-results.json "built_vuln.json" > temp.json && mv temp.json trivy-results.json
+                  rm -f "built_vuln.json"
+                fi
+                rm -f "built_image.json"
+                echo "    Continuing with base image scan..."
+                BUILT_IMAGE_SCANNED=true
+              fi
+
+              if [ "$BUILT_IMAGE_SCANNED" = true ]; then
+                SAFE_IMAGE_NAME=$(echo "$BUILD_TAG" | tr '/:@.' '_')
+                
+                # --- PHP ---
+                if docker run --rm --entrypoint="" "$BUILD_TAG" which php >/dev/null 2>&1; then
+                   PHP_VERSION=$(docker run --rm --entrypoint="" "$BUILD_TAG" php -v 2>/dev/null | head -1 | grep -oP 'PHP \K[0-9.]+' || echo "unknown")
+                   docker run --rm --entrypoint="" "$BUILD_TAG" php -m 2>/dev/null | grep -v "^\[" | sort | while read -r ext; do
+                     [ -n "$ext" ] && echo "{\"Name\":\"php-$ext\",\"Version\":\"$PHP_VERSION\",\"Identifier\":{\"PURL\":\"pkg:php-ext/$ext@$PHP_VERSION\"}}"
+                   done | jq -s '{Results:[{Target:"'"$BUILD_TAG"' (PHP Extensions)",Class:"lang-pkgs",Type:"php-extension",Packages:.}]}' > "php_${SAFE_IMAGE_NAME}.json" 2>/dev/null || true
+                   if [ -f "php_${SAFE_IMAGE_NAME}.json" ] && [ -s "php_${SAFE_IMAGE_NAME}.json" ]; then
+                     jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' sbom.json "php_${SAFE_IMAGE_NAME}.json" > temp.json && mv temp.json sbom.json
+                     rm -f "php_${SAFE_IMAGE_NAME}.json"
+                   fi
+                fi
+                # --- Python ---
+                if docker run --rm --entrypoint="" "$BUILD_TAG" which python3 >/dev/null 2>&1 || docker run --rm --entrypoint="" "$BUILD_TAG" which python >/dev/null 2>&1; then
+                  PYTHON_CMD=$(docker run --rm --entrypoint="" "$BUILD_TAG" which python3 >/dev/null 2>&1 && echo "python3" || echo "python")
+                  docker run --rm --entrypoint="" "$BUILD_TAG" $PYTHON_CMD -m pip list --format=json 2>/dev/null | jq '[.[] | {Name: .name, Version: .version, Identifier: {PURL: "pkg:pypi/\(.name)@\(.version)"}}]' | jq '{Results:[{Target:"'"$BUILD_TAG"' (Python Packages)",Class:"lang-pkgs",Type:"pip",Packages:.}]}' > "python_${SAFE_IMAGE_NAME}.json" 2>/dev/null || true
+                  if [ -f "python_${SAFE_IMAGE_NAME}.json" ] && [ -s "python_${SAFE_IMAGE_NAME}.json" ]; then
+                    jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' sbom.json "python_${SAFE_IMAGE_NAME}.json" > temp.json && mv temp.json sbom.json
+                    rm -f "python_${SAFE_IMAGE_NAME}.json"
+                  fi
+                fi
+                # --- Node ---
+                if docker run --rm --entrypoint="" "$BUILD_TAG" which node >/dev/null 2>&1; then
+                  docker run --rm --entrypoint="" "$BUILD_TAG" npm list -g --json 2>/dev/null | jq '[.dependencies // {} | to_entries[] | {Name: .key, Version: .value.version, Identifier: {PURL: "pkg:npm/\(.key)@\(.value.version)"}}]' | jq '{Results:[{Target:"'"$BUILD_TAG"' (Node.js Packages)",Class:"lang-pkgs",Type:"npm",Packages:.}]}' > "node_${SAFE_IMAGE_NAME}.json" 2>/dev/null || true
+                  if [ -f "node_${SAFE_IMAGE_NAME}.json" ] && [ -s "node_${SAFE_IMAGE_NAME}.json" ]; then
+                    jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' sbom.json "node_${SAFE_IMAGE_NAME}.json" > temp.json && mv temp.json sbom.json
+                    rm -f "node_${SAFE_IMAGE_NAME}.json"
+                  fi
+                fi
+                # --- Ruby ---
+                if docker run --rm --entrypoint="" "$BUILD_TAG" which gem >/dev/null 2>&1; then
+                  docker run --rm --entrypoint="" "$BUILD_TAG" gem list 2>/dev/null | sed 's/ (/\t/g; s/)//g' | while IFS=$'\t' read -r name version; do [ -n "$name" ] && echo "{\"Name\":\"$name\",\"Version\":\"$version\",\"Identifier\":{\"PURL\":\"pkg:gem/$name@$version\"}}"; done | jq -s '{Results:[{Target:"'"$BUILD_TAG"' (Ruby Gems)",Class:"lang-pkgs",Type:"gem",Packages:.}]}' > "ruby_${SAFE_IMAGE_NAME}.json" 2>/dev/null || true
+                  if [ -f "ruby_${SAFE_IMAGE_NAME}.json" ] && [ -s "ruby_${SAFE_IMAGE_NAME}.json" ]; then
+                    jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' sbom.json "ruby_${SAFE_IMAGE_NAME}.json" > temp.json && mv temp.json sbom.json
+                    rm -f "ruby_${SAFE_IMAGE_NAME}.json"
+                  fi
+                fi
+              fi
+              docker rmi "$BUILD_TAG" >/dev/null 2>&1 || true
+            else
+              echo "    ⚠️ Build failed, reason:"
+              echo "$BUILD_OUTPUT" | tail -20 | sed 's/^/      /'
+              echo "    Continuing with base image scan..."
+            fi
+            
+            # --- CORRECTION DE LA LOGIQUE ICI ---
+            if [ "$BUILT_IMAGE_SCANNED" = true ]; then
+              echo "    Built image already scanned, skipping base image scan."
+              continue
+            else
+              echo "    Scanning base images from Dockerfile..."
+              
+              if [ "$STAGE_COUNT" -gt 1 ]; then
+                echo "    Multi-stage build detected ($STAGE_COUNT stages)"
+                IMAGES_TO_SCAN=$(echo "$ALL_IMAGES" | tail -1)
+              else
+                IMAGES_TO_SCAN="$ALL_IMAGES"
+              fi
+              
+              echo "$IMAGES_TO_SCAN" | while read -r image; do
+                if [[ "$image" =~ ^\$ ]] || [[ "$image" == "scratch" ]] || [[ -z "$image" ]]; then
+                  continue
+                fi
+                
+                echo "    Scanning image: $image"
+                SAFE_IMAGE_NAME=$(echo "$image" | tr '/:@.' '_')
+                
+                docker pull "$image" 2>/dev/null || continue
+                
+                docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --format json --list-all-pkgs "$image" > "image_${SAFE_IMAGE_NAME}.json" 2>/dev/null || true
+                
+                if [ -f "image_${SAFE_IMAGE_NAME}.json" ] && [ -s "image_${SAFE_IMAGE_NAME}.json" ]; then
+                  jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' sbom.json "image_${SAFE_IMAGE_NAME}.json" > temp.json && mv temp.json sbom.json
+                  jq '{Results: [.Results[] | select(.Vulnerabilities != null and (.Vulnerabilities | length) > 0)]}' "image_${SAFE_IMAGE_NAME}.json" > "vuln_${SAFE_IMAGE_NAME}.json" 2>/dev/null || true
+                  if [ -f "vuln_${SAFE_IMAGE_NAME}.json" ] && [ -s "vuln_${SAFE_IMAGE_NAME}.json" ]; then
+                    jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' trivy-results.json "vuln_${SAFE_IMAGE_NAME}.json" > temp.json && mv temp.json trivy-results.json
+                    rm -f "vuln_${SAFE_IMAGE_NAME}.json"
+                  fi
+                  rm -f "image_${SAFE_IMAGE_NAME}.json"
+                fi
+                
+                # --- PHP (Base Image) ---
+                if docker run --rm --entrypoint="" "$image" which php >/dev/null 2>&1; then
+                  PHP_VERSION=$(docker run --rm --entrypoint="" "$image" php -v 2>/dev/null | head -1 | grep -oP 'PHP \K[0-9.]+' || echo "unknown")
+                  docker run --rm --entrypoint="" "$image" php -m 2>/dev/null | grep -v "^\[" | sort | while read -r ext; do
+                    [ -n "$ext" ] && echo "{\"Name\":\"php-$ext\",\"Version\":\"$PHP_VERSION\",\"Identifier\":{\"PURL\":\"pkg:php-ext/$ext@$PHP_VERSION\"}}"
+                  done | jq -s '{Results:[{Target:"'"$image"' (PHP Extensions)",Class:"lang-pkgs",Type:"php-extension",Packages:.}]}' > "php_${SAFE_IMAGE_NAME}.json" 2>/dev/null || true
+                  if [ -f "php_${SAFE_IMAGE_NAME}.json" ] && [ -s "php_${SAFE_IMAGE_NAME}.json" ]; then
+                    jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' sbom.json "php_${SAFE_IMAGE_NAME}.json" > temp.json && mv temp.json sbom.json
+                    rm -f "php_${SAFE_IMAGE_NAME}.json"
+                  fi
+                fi
+                
+                # --- Python (Base Image) ---
+                if docker run --rm --entrypoint="" "$image" which python3 >/dev/null 2>&1 || docker run --rm --entrypoint="" "$image" which python >/dev/null 2>&1; then
+                  PYTHON_CMD=$(docker run --rm --entrypoint="" "$image" which python3 >/dev/null 2>&1 && echo "python3" || echo "python")
+                  docker run --rm --entrypoint="" "$image" $PYTHON_CMD -m pip list --format=json 2>/dev/null | jq '[.[] | {Name: .name, Version: .version, Identifier: {PURL: "pkg:pypi/\(.name)@\(.version)"}}]' | jq '{Results:[{Target:"'"$image"' (Python Packages)",Class:"lang-pkgs",Type:"pip",Packages:.}]}' > "python_${SAFE_IMAGE_NAME}.json" 2>/dev/null || true
+                  if [ -f "python_${SAFE_IMAGE_NAME}.json" ] && [ -s "python_${SAFE_IMAGE_NAME}.json" ]; then
+                    jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' sbom.json "python_${SAFE_IMAGE_NAME}.json" > temp.json && mv temp.json sbom.json
+                    rm -f "python_${SAFE_IMAGE_NAME}.json"
+                  fi
+                fi
+                
+                # --- Node (Base Image) ---
+                if docker run --rm --entrypoint="" "$image" which node >/dev/null 2>&1; then
+                  docker run --rm --entrypoint="" "$image" npm list -g --json 2>/dev/null | jq '[.dependencies // {} | to_entries[] | {Name: .key, Version: .value.version, Identifier: {PURL: "pkg:npm/\(.key)@\(.value.version)"}}]' | jq '{Results:[{Target:"'"$image"' (Node.js Packages)",Class:"lang-pkgs",Type:"npm",Packages:.}]}' > "node_${SAFE_IMAGE_NAME}.json" 2>/dev/null || true
+                  if [ -f "node_${SAFE_IMAGE_NAME}.json" ] && [ -s "node_${SAFE_IMAGE_NAME}.json" ]; then
+                    jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' sbom.json "node_${SAFE_IMAGE_NAME}.json" > temp.json && mv temp.json sbom.json
+                    rm -f "node_${SAFE_IMAGE_NAME}.json"
+                  fi
+                fi
+                
+                # --- Ruby (Base Image) ---
+                if docker run --rm --entrypoint="" "$image" which gem >/dev/null 2>&1; then
+                  docker run --rm --entrypoint="" "$image" gem list 2>/dev/null | sed 's/ (/\t/g; s/)//g' | while IFS=$'\t' read -r name version; do [ -n "$name" ] && echo "{\"Name\":\"$name\",\"Version\":\"$version\",\"Identifier\":{\"PURL\":\"pkg:gem/$name@$version\"}}"; done | jq -s '{Results:[{Target:"'"$image"' (Ruby Gems)",Class:"lang-pkgs",Type:"gem",Packages:.}]}' > "ruby_${SAFE_IMAGE_NAME}.json" 2>/dev/null || true
+                  if [ -f "ruby_${SAFE_IMAGE_NAME}.json" ] && [ -s "ruby_${SAFE_IMAGE_NAME}.json" ]; then
+                    jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' sbom.json "ruby_${SAFE_IMAGE_NAME}.json" > temp.json && mv temp.json sbom.json
+                    rm -f "ruby_${SAFE_IMAGE_NAME}.json"
+                  fi
+                fi
+                
+              done ### CORRECTION : Fermeture de la boucle interne 'while read -r image' ###
+            fi     ### CORRECTION : Fermeture du 'else' de la condition 'if [ "$BUILT_IMAGE_SCANNED" = true ]' ###
+            
+          done ### CORRECTION : Fermeture de la boucle principale 'while read -r dockerfile' ###
+          
+          # ============================================
+          # 5. Scanner les misconfigurations Dockerfile
+          # ============================================
+          echo "🔧 Scanning Dockerfile misconfigurations..."
+          find . -maxdepth 3 -type f \( -name "Dockerfile*" -o -name "*.dockerfile" \) | while read -r dockerfile; do
+            SAFE_NAME=$(echo "$dockerfile" | tr '/:.' '_')
+            trivy config --format json "$dockerfile" > "config_${SAFE_NAME}.json" 2>/dev/null || true
+            if [ -f "config_${SAFE_NAME}.json" ] && [ -s "config_${SAFE_NAME}.json" ]; then
+              jq -s 'if .[1].Results then .[0].Results += .[1].Results | .[0] else .[0] end' trivy-results.json "config_${SAFE_NAME}.json" > temp.json && mv temp.json trivy-results.json
+              rm -f "config_${SAFE_NAME}.json"
+            fi
+          done
+          
+          # ============================================
+          # 6. Dédupliquer et finaliser
+          # ============================================
+          echo "🧹 Deduplicating..."
+          jq '.Results |= unique_by(.Target, .Type)' sbom.json > temp.json 2>/dev/null && mv temp.json sbom.json || true
+          jq '.Results |= unique_by(.Target, .Type)' trivy-results.json > temp.json 2>/dev/null && mv temp.json trivy-results.json || true
+          
+          echo "Scan completed"
+
+      - name: Add scan metadata
+        run: |
+          TOTAL_PKGS=$(jq '[.Results[]?.Packages // [] | length] | add // 0' sbom.json)
+          TOTAL_VULNS=$(jq '[.Results[]?.Vulnerabilities // [] | length] | add // 0' trivy-results.json)
+          
+          cat > metadata.json <<EOF
+          {
+            "repository": "${{ github.repository }}",
+            "branch": "${{ github.ref_name }}",
+            "commit": "${{ github.sha }}",
+            "run_id": "${{ github.run_id }}",
+            "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "stats": {
+              "total_packages": $TOTAL_PKGS,
+              "total_vulnerabilities": $TOTAL_VULNS
+            }
+          }
+          EOF
+      
+      - name: Upload scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-results
+          path: |
+            sbom.json
+            trivy-results.json
+            metadata.json
+          retention-days: 90
